@@ -2,7 +2,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-# TODO: Standardize income to prevent distance being dominated by income (MinMaxScaler)
 
 
 def boxplot_associate(df, indexes, graph_info_array):
