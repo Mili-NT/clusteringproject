@@ -101,7 +101,7 @@ def main():
     visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'KMeans_Cluster')
 
     df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=nclusters)
-
+    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'FCM_Cluster')
 
 if __name__ == '__main__':
     main()
