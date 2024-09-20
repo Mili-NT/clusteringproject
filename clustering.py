@@ -5,7 +5,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
 from fcmeans import FCM
 
-# TODO: FIX UNDEFINED VARIABLES
 # TODO: DETERMINE APPROPRIATE NUMBER OF CLUSTERS INSTEAD OF HARDCODING
 
 def boxplot_associate(df, indexes, graph_info_array):
@@ -56,44 +55,52 @@ def visual_eda(df):
     # Gender-Annual Income Association (Boxplot)
     boxplot_associate(df, (1,3), ["Gender", "Annual Income", "Gender-Annual Income Association"])
 
-#applying k-means
-def k_cluster(X, n_clusters=5):
-    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
-    clusters = kmeans.fit_predict(X)
-    # Finding the optimal number of clusters using the elbow method
+# Placeholder Function for determining correct cluster count
+def nclusters_by_elbow_method(selected_features):
     wcss = []
     for i in range(1, 11):
         kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
-        kmeans.fit(df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]])
+        kmeans.fit(selected_features)
         wcss.append(kmeans.inertia_)
+    print(wcss)
+    # TODO: FINISH IMPLEMENTING ELBOW METHOD NCLUSTER SELECTION
+    # Currently, this returns the previous hardcoded ncluster value until we implement selecting from the inertia scores
+    # by calculating the gradient with diff
+    return 5
 
+
+def k_cluster(selected_features, n_clusters=5):
+    kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
+    clusters = kmeans.fit_predict(selected_features)
     return clusters
 
 #Applying fuzzy-k
-def fuzzy_cmeans(X, n_clusters=5):
+def fuzzy_cmeans(selected_features, n_clusters):
     fcm = FCM(n_clusters=n_clusters)
-    fcm.fit(X)
-    clusters = fcm.predict(X)
+    fcm.fit(selected_features.values)
+    clusters = fcm.predict(selected_features.values)
     return clusters
 
 def visualize_clusters(df, feature_x, feature_y, cluster_label):
     plt.figure(figsize=(10, 6))
     plt.scatter(df[feature_x], df[feature_y], c=df[cluster_label], cmap='viridis', s=50)
-    plt.title('K-Means Clustering with Gender')
+    plt.title('K-Means Clustering with Age')
     plt.xlabel(feature_x)
     plt.ylabel(feature_y)
     plt.show()
 
-
-#
-
 def main():
     df = import_data()
     explore_data(df)
-    visual_eda(df)
-    df['KMeans_Cluster'] = k_cluster(X_scaled, n_clusters=5)
-    visualize_clusters(df, 'Annul Income (k$)', 'Spending Score (1-100', 'k-Means Cluster')
-    df['FCM_Cluster'] = fuzzy_cmeans(X)
+    #visual_eda(df)
+
+    selected_features = df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]]
+    nclusters = nclusters_by_elbow_method(selected_features)
+
+    df['KMeans_Cluster'] = k_cluster(selected_features, n_clusters=nclusters)
+    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'KMeans_Cluster')
+
+    df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=nclusters)
 
 
 if __name__ == '__main__':
