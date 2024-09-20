@@ -2,8 +2,11 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.cluster import KMeans
+from fcmeans import FCM
 
-
+# TODO: FIX UNDEFINED VARIABLES
+# TODO: DETERMINE APPROPRIATE NUMBER OF CLUSTERS INSTEAD OF HARDCODING
 
 def boxplot_associate(df, indexes, graph_info_array):
     """
