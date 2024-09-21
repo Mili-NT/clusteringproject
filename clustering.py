@@ -2,8 +2,11 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN
 from fcmeans import FCM
+import numpy as np
+from sklearn.neighbors import NearestNeighbors
+from sklearn.metrics import silhouette_score
 
 # TODO: DETERMINE APPROPRIATE NUMBER OF CLUSTERS INSTEAD OF HARDCODING
 
@@ -63,6 +66,12 @@ def nclusters_by_elbow_method(selected_features):
         kmeans.fit(selected_features)
         wcss.append(kmeans.inertia_)
     print(wcss)
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, 11), wcss)
+    plt.title('Elbow Method')
+    plt.xlabel('Number of Clusters')
+    plt.ylabel('WCSS')
+    plt.show()
     # TODO: FINISH IMPLEMENTING ELBOW METHOD NCLUSTER SELECTION
     # Currently, this returns the previous hardcoded ncluster value until we implement selecting from the inertia scores
     # by calculating the gradient with diff
@@ -81,13 +90,66 @@ def fuzzy_cmeans(selected_features, n_clusters):
     clusters = fcm.predict(selected_features.values)
     return clusters
 
+#Applying DBSCAN Optimizing
+def dbscan_opt(selected_features, minPts, k=10 ):
+    """
+    Plots the k-distance graph to help estimate the optimal eps for DBSCAN.
+    Parameters:
+    - data: The scaled dataset for clustering
+    - minPts: The number of nearest neighbors to consider (default = 4)
+    """
+
+    neighbors = NearestNeighbors(n_neighbors=k)
+    neighbors_fit = neighbors.fit(selected_features)
+    distances, _ = neighbors_fit.kneighbors(selected_features)
+    k_distances = np.sort(distances[:, k - 1], axis=0)
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(k_distances)
+    plt.xlabel('Data Points (sorted by distance)')
+    plt.ylabel(f'{minPts}-th Nearest Neighbor Distance')
+    plt.title('k-distance Graph for DBSCAN')
+    plt.grid(True)
+    plt.show()
+
+    # Choosing an epsilon based on the elbow point from the graph (adjustable)
+    optimal_eps = np.percentile(k_distances, 90)
+
+    # Step 2: Optimize min_samples using silhouette score for the optimized eps
+    best_score = -1
+    best_min_samples = None
+    best_labels = None
+
+    for min_samples in minPts:
+        dbscan = DBSCAN(eps=optimal_eps, min_samples=min_samples)
+        labels = dbscan.fit_predict(selected_features)
+
+        # Only calculate silhouette score if more than 1 cluster is found
+        if len(set(labels)) > 1:
+            score = silhouette_score(selected_features, labels)
+            if score > best_score:
+                best_score = score
+                best_min_samples = min_samples
+                best_labels = labels
+
+    return best_labels, optimal_eps, best_min_samples, best_score
+
+    #Applying DBSCAN
+def dbscan(features, minPts, ep):
+    dbscan_model = DBSCAN(eps=ep, min_samples=minPts)
+    final_labels = dbscan_model.fit_predict(features)
+
+    return final_labels
+
+
+
 def visualize_clusters(df, feature_x, feature_y, cluster_label):
-    plt.figure(figsize=(10, 6))
     plt.scatter(df[feature_x], df[feature_y], c=df[cluster_label], cmap='viridis', s=50)
-    plt.title('K-Means Clustering with Age')
+    plt.title(cluster_label)
     plt.xlabel(feature_x)
     plt.ylabel(feature_y)
     plt.show()
+
 
 def main():
     df = import_data()
@@ -97,11 +159,19 @@ def main():
     selected_features = df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]]
     nclusters = nclusters_by_elbow_method(selected_features)
 
-    df['KMeans_Cluster'] = k_cluster(selected_features, n_clusters=nclusters)
-    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'KMeans_Cluster')
+    df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=nclusters)
+    visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
 
     df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=nclusters)
-    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'FCM_Cluster')
+    visualize_clusters(df, 'Annual Income (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
+
+    minPts = range(3, 15)
+    labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, minPts)
+    df['DBSCAN_Cluster'] = dbscan(selected_features, best_min_samples, optimal_eps)
+    visualize_clusters(df, 'Annual Income (k$)',  'Spending Score (1-100)','DBSCAN_Cluster')
+
+
+
 
 if __name__ == '__main__':
     main()
