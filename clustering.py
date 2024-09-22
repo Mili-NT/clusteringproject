@@ -48,15 +48,13 @@ def visual_eda(df):
     df.hist(bins=30, figsize=(15, 10))
     plt.show()
     sns.displot(df.iloc[:, 3], kde=True)
-    sns.displot(df.iloc[:, 2], kde=True)
     sns.displot(df.iloc[:, 4], kde=True)
     # Seaborn scatterplots
     sns.pairplot(df)
     plt.show()
-    # Gender-Spending Score Association (Boxplot)
-    boxplot_associate(df, (1,4), ["Gender", "Spending Score", "Gender-Spending Score Association"])
-    # Gender-Annual Income Association (Boxplot)
-    boxplot_associate(df, (1,3), ["Gender", "Annual Income", "Gender-Annual Income Association"])
+    # Annual Income`-Spending Score Association (Boxplot)
+    boxplot_associate(df, (3,4), ["Annual Income", "Spending Score", "Annual Income-Spending Score Association"])
+
 
 def k_cluster(selected_features, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
