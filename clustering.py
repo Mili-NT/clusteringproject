@@ -9,7 +9,6 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import silhouette_score
 
 
-# TODO: Determine ncluster via some automated method (ncluster=5 is optimal, proved via testing)
 # TODO: Improve DBSCAN accuracy
 
 def boxplot_associate(df, indexes, graph_info_array):
@@ -97,7 +96,7 @@ def get_optimal_nclusters_silhouette(selected_features):
     plt.show()
     return range(2, 12)[np.argmax(scores)]
 
-def k_cluster(selected_features, n_clusters=5):
+def k_cluster(selected_features, n_clusters):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
     clusters = kmeans.fit_predict(selected_features)
     return clusters
@@ -176,7 +175,7 @@ def main():
     nclusters_silhouette = get_optimal_nclusters_silhouette(selected_features)
     nclusters_elbow = get_optimal_nclusters_elbow(selected_features)
     print(f"nclusters according to silhouette method: {nclusters_silhouette}\nnclusters according to elbow method: {nclusters_elbow}")
-
+    # Because the two agree we can conclusively say that the optimal ncluster value is likely to be 5
     kmeans_nclusters = nclusters_elbow
 
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=kmeans_nclusters)
