@@ -1,6 +1,7 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from select import select
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans, DBSCAN
 from fcmeans import FCM
@@ -8,7 +9,8 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import silhouette_score
 
-# TODO: Improve clustering values
+# TODO: Determine ncluster via some automated method (ncluster=5 is optimal, proved via testing)
+# TODO: Improve DBSCAN accuracy
 
 def boxplot_associate(df, indexes, graph_info_array):
     """
@@ -30,8 +32,6 @@ def boxplot_associate(df, indexes, graph_info_array):
 
 def import_data():
     df = pd.read_csv('Mall_Customers.csv')
-    # One Hot Encoding
-    df = pd.get_dummies(df, columns=["Genre"])
     # MinMax Scale 0-1
     df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]] = MinMaxScaler().fit_transform(df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]])
     return df
@@ -57,21 +57,6 @@ def visual_eda(df):
     boxplot_associate(df, (1,4), ["Gender", "Spending Score", "Gender-Spending Score Association"])
     # Gender-Annual Income Association (Boxplot)
     boxplot_associate(df, (1,3), ["Gender", "Annual Income", "Gender-Annual Income Association"])
-
-# Seperate ncluster determination for kmeans (elbow method did not produce desired results)
-def optimal_kmeans_clusters(selected_features):
-    optimal_score = -1
-    optimal_nclusters = 0
-    for n_clusters in range(2, 11):
-        kmeans = KMeans(n_clusters=n_clusters, random_state=0)
-        labels = kmeans.fit_predict(selected_features)
-        if len(set(labels)) > 1:  # Has to be at least 1, ideally ~4 clusters based on sns plots
-            score = silhouette_score(selected_features, labels)
-            if score > optimal_score:
-                optimal_score = score
-                optimal_nclusters = n_clusters
-    return optimal_nclusters
-
 
 def k_cluster(selected_features, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
@@ -133,10 +118,7 @@ def dbscan_opt(selected_features, min_pts, k=10):
 def dbscan_clustering(features, min_pts, ep):
     dbscan_model = DBSCAN(eps=ep, min_samples=min_pts)
     final_labels = dbscan_model.fit_predict(features)
-
     return final_labels
-
-
 
 def visualize_clusters(df, feature_x, feature_y, cluster_label):
     plt.scatter(df[feature_x], df[feature_y], c=df[cluster_label], cmap='viridis', s=50)
@@ -151,13 +133,13 @@ def main():
     explore_data(df)
     visual_eda(df)
 
-    selected_features = df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]]
-    kmeans_nclusters = optimal_kmeans_clusters(selected_features)
+    selected_features = df[["Annual Income (k$)", "Spending Score (1-100)"]]
+    kmeans_nclusters = 5
 
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=kmeans_nclusters)
     visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
 
-    df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=5)
+    df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=kmeans_nclusters)
     visualize_clusters(df, 'Annual Income (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
 
     min_pts = range(3, 15)
