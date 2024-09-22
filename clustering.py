@@ -80,10 +80,10 @@ def nclusters_by_elbow_method(selected_features):
     return 5
 
 # Function to apply KMeans and calculate silhouette score
-def kmeans_silhouette(X, n_clusters):
+def kmeans_silhouette(selected_features, n_clusters):
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
-    labels = kmeans.fit_predict(X)
-    score = silhouette_score(X, labels)
+    labels = kmeans.fit_predict(selected_features)
+    score = silhouette_score(selected_features, labels)
     return score
 
 
@@ -200,24 +200,29 @@ def apply_gmm(X_scaled, n_components=3):
     return clusters
 
 
-def calculate_silhouette_scores(X, max_clusters=10):
+def calculate_silhouette_scores(selected_features, max_clusters=10):
     kmeans_scores = []
     gmm_scores = []
     fuzzy_scores = []
 
     for n in range(2, max_clusters + 1):
-        kmeans_scores.append(kmeans_silhouette(X, n))
-        gmm_scores.append(gmm_silhouette(X, n))
-        fuzzy_scores.append(fuzzy_cmeans_silhouette(X, n))
+        kmeans_scores.append(kmeans_silhouette(selected_features, n))
+        gmm_scores.append(gmm_silhouette(selected_features, n))
+        fuzzy_scores.append(fuzzy_cmeans_silhouette(selected_features, n))
 
     return kmeans_scores, gmm_scores, fuzzy_scores
+
+def find_best_n_clusters(scores):
+    best_n_clusters = np.argmax(scores) + 2  # +2 because we start from 2 clusters
+    return best_n_clusters
 
 def visualize_clusters(df, feature_x, feature_y, cluster_label, count_cluster, sil_score):
     plt.scatter(df[feature_x], df[feature_y], c=df[cluster_label], cmap='viridis', s=50)
     plt.title(cluster_label)
     plt.xlabel(feature_x)
     plt.ylabel(feature_y)
-    plt.text(0.95, 0.95, f'Clusters: {count_cluster}, \n Silhouette_Score: {sil_score}', fontsize=12, ha='center', va='center',
+    plt.text(0.95, 0.95, f'Clusters: {count_cluster}, \n Silhouette_Score: {sil_score}', fontsize=12, ha='center',
+             va='center',
              transform=plt.gca().transAxes)
     plt.show()
 
@@ -244,24 +249,35 @@ def main():
     #visual_eda(df)
 
     selected_features = df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]]
-    nclusters = nclusters_by_elbow_method(selected_features)
-    df['Kmeans_Cluster'], count_clusters_kmeans = k_cluster(selected_features, n_clusters=nclusters)
 
-    df['FCM_Cluster'], count_clusters_FCM = fuzzy_cmeans(selected_features, n_clusters=nclusters)
+    # Step 1: Calculate Silhouette Scores for different clustering methods
+    kmeans_scores, gmm_scores, fuzzy_scores = calculate_silhouette_scores(selected_features, max_clusters=10)
+
+    # Step 2: Find the optimal number of clusters for each method
+    best_kmeans_n_clusters = find_best_n_clusters(kmeans_scores)
+    best_gmm_n_clusters = find_best_n_clusters(gmm_scores)
+    best_fuzzy_n_clusters = find_best_n_clusters(fuzzy_scores)
+
+    df['Kmeans_Cluster'], count_clusters_kmeans = k_cluster(selected_features, n_clusters=best_kmeans_n_clusters)
+    df['FCM_Cluster'], count_clusters_FCM = fuzzy_cmeans(selected_features, n_clusters=best_fuzzy_n_clusters)
+    df['GMM_Cluster'] = apply_gmm(selected_features, n_components=best_gmm_n_clusters)
+
+
 
     minPts = range(3, 15)
     labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, minPts)
     df['DBSCAN_Cluster'], count_clusters_dbscan = dbscan(selected_features, best_min_samples, optimal_eps)
 
-    ncomponents = find_best_n_components(selected_features)
-    df['GMM_Cluster'] = apply_gmm(selected_features, n_components=ncomponents)
+    # Visualize the clusters for each method
+    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'Kmeans_Cluster', count_clusters_kmeans,
+                       max(kmeans_scores))
+    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'FCM_Cluster', count_clusters_FCM,
+                       max(fuzzy_scores))
+    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'GMM_Cluster', best_gmm_n_clusters,
+                       max(gmm_scores))
 
-    kmeans_scores, gmm_scores, fuzzy_scores = calculate_silhouette_scores(selected_features)
+    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'DBSCAN_Cluster', count_clusters_dbscan, best_score)
 
-    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'Kmeans_Cluster', count_clusters_kmeans, kmeans_scores)
-    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'FCM_Cluster', count_clusters_FCM, fuzzy_scores)
-    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'DBSCAN_Cluster', count_clusters_dbscan,best_score)
-    visualize_clusters(df, 'Annual Income (k$)', 'Spending Score (1-100)', 'GMM_Cluster', ncomponents, gmm_scores)
 
     plot_silhouette_comparison(kmeans_scores, gmm_scores, fuzzy_scores, best_score)
 
