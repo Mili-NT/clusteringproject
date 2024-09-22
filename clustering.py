@@ -57,25 +57,12 @@ def visual_eda(df):
     # Annual Income-Spending Score Association (Boxplot)
     boxplot_associate(df, (3,4), ["Annual Income", "Spending Score", "Annual Income-Spending Score Association"])
 
-
-def determine_elbow_point(wcss):
-    # Calculate the first derivative
-    first_derivative = np.diff(wcss)
-
-    # Calculate the second derivative
-    second_derivative = np.diff(first_derivative)
-
-    # Find the index of the maximum value in the second derivative
-    elbow_index = np.argmin(second_derivative) + 1  # +1 to account for the shift due to np.diff
-
-    return elbow_index
-def get_optimal_nclusters(selected_features):
+def get_optimal_nclusters_elbow(selected_features):
         wcss = []
-        for i in range(1, 11):
-            kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=50, random_state=0)
+        for i in range(1, 12):
+            kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
             kmeans.fit(selected_features)
             wcss.append(kmeans.inertia_)
-        print(wcss)
         # From visual analysis we can tell the elbow point is 5, as that is where the inertia starts decreasing linearly
         # Get rate of change for values in WCSS list:
         wcss_derivative = np.diff(wcss)
@@ -84,15 +71,31 @@ def get_optimal_nclusters(selected_features):
         wcss_derivative_2 = np.diff(wcss_derivative)
         # Get minimum value of the second derivative to find the optimal elbow point
         elbow_point = np.argmin(wcss_derivative_2) + 1
-        print("Optimal number of clusters (elbow point):", elbow_point)
         plt.figure(figsize=(10, 6))
-        plt.plot(range(1, 11), wcss)
+        plt.plot(range(1, 12), wcss)
         plt.title('Elbow Method')
         plt.xlabel('Number of Clusters')
         plt.ylabel('WCSS')
-        plt.xticks(range(1, 11))
+        plt.xticks(range(1, 12))
         plt.show()
         return elbow_point
+
+def get_optimal_nclusters_silhouette(selected_features):
+    scores = []
+    for i in range(2, 12):
+        kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
+        labels = kmeans.fit_predict(selected_features)
+        score = silhouette_score(selected_features, labels)
+        scores.append(score)
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(2, 12), scores)
+    plt.title('Silhouette Scores by Ncluster')
+    plt.xlabel('Ncluster')
+    plt.ylabel('Silhouette Score')
+    plt.xticks(range(2, 12))
+    plt.grid()
+    plt.show()
+    return range(2, 12)[np.argmax(scores)]
 
 def k_cluster(selected_features, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
@@ -170,7 +173,11 @@ def main():
     visual_eda(df)
 
     selected_features = df[["Annual Income (k$)", "Spending Score (1-100)"]]
-    kmeans_nclusters = get_optimal_nclusters(selected_features)
+    nclusters_silhouette = get_optimal_nclusters_silhouette(selected_features)
+    nclusters_elbow = get_optimal_nclusters_elbow(selected_features)
+    print(f"nclusters according to silhouette method: {nclusters_silhouette}\nnclusters according to elbow method: {nclusters_elbow}")
+
+    kmeans_nclusters = nclusters_elbow
 
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=kmeans_nclusters)
     visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
