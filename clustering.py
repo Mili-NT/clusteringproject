@@ -1,7 +1,6 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from select import select
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans, DBSCAN
 from fcmeans import FCM
@@ -52,7 +51,7 @@ def visual_eda(df):
     # Seaborn scatterplots
     sns.pairplot(df)
     plt.show()
-    # Annual Income`-Spending Score Association (Boxplot)
+    # Annual Income-Spending Score Association (Boxplot)
     boxplot_associate(df, (3,4), ["Annual Income", "Spending Score", "Annual Income-Spending Score Association"])
 
 
