@@ -77,6 +77,32 @@ def nclusters_by_elbow_method(selected_features):
     # by calculating the gradient with diff
     return 5
 
+def n_clusters_by_silhouette(selected_features):
+    scores = []
+    
+
+    # find s score using n[1,11] clusters
+    for i in range(2,11):
+        kmeans  = KMeans(n_clusters=i, init='k-means++')
+        kmeans.fit_predict(selected_features)
+        sil_score = silhouette_score(selected_features, scores)
+        scores.append(sil_score)
+    
+    # choose the highest s score to determine optimal n
+    optimal_score = max(scores) + 2
+    n_clusters = sil_score.index(optimal_score)
+    
+    print(f'Silhouette Score for ',{n_clusters},' clusters: ',{optimal_score})
+
+    # plot scores
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, 11), scores)
+    plt.title(' Silhouette Scores for n Clusters')
+    plt.xlabel('Number of Clusters')
+    plt.ylabel('Score')
+    plt.show()
+
+    return n_clusters
 
 def k_cluster(selected_features, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
@@ -157,6 +183,7 @@ def main():
     #visual_eda(df)
 
     selected_features = df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]]
+    # using elbow method
     nclusters = nclusters_by_elbow_method(selected_features)
 
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=nclusters)
@@ -165,6 +192,15 @@ def main():
     df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=nclusters)
     visualize_clusters(df, 'Annual Income (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
 
+    # # using silhouette score
+    # n_clusters = n_clusters_by_silhouette(selected_features)
+
+    # df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=n_clusters)
+    # visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
+    # df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=n_clusters)
+    # visualize_clusters(df, 'Annual Income00  (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
+
+    # Optimizing DBSCAN00
     minPts = range(3, 15)
     labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, minPts)
     df['DBSCAN_Cluster'] = dbscan(selected_features, best_min_samples, optimal_eps)
