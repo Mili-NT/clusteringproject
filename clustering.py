@@ -92,6 +92,7 @@ def get_optimal_nclusters(selected_features):
         plt.ylabel('WCSS')
         plt.xticks(range(1, 11))
         plt.show()
+        return elbow_point
 
 def k_cluster(selected_features, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
@@ -169,9 +170,7 @@ def main():
     visual_eda(df)
 
     selected_features = df[["Annual Income (k$)", "Spending Score (1-100)"]]
-    print(get_optimal_nclusters(selected_features))
-    exit()
-    kmeans_nclusters = 5
+    kmeans_nclusters = get_optimal_nclusters(selected_features)
 
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=kmeans_nclusters)
     visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
