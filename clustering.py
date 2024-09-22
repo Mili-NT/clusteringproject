@@ -1,12 +1,13 @@
 import pandas as pd
 import seaborn as sns
+from fcmeans import FCM
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans, DBSCAN
-from fcmeans import FCM
-import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import silhouette_score
+
 
 # TODO: Determine ncluster via some automated method (ncluster=5 is optimal, proved via testing)
 # TODO: Improve DBSCAN accuracy
@@ -31,6 +32,8 @@ def boxplot_associate(df, indexes, graph_info_array):
 
 def import_data():
     df = pd.read_csv('Mall_Customers.csv')
+    # One-Hot Encoding
+    df = pd.get_dummies(df, columns=["Genre"])
     # MinMax Scale 0-1
     df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]] = MinMaxScaler().fit_transform(df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]])
     return df
