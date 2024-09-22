@@ -58,6 +58,41 @@ def visual_eda(df):
     boxplot_associate(df, (3,4), ["Annual Income", "Spending Score", "Annual Income-Spending Score Association"])
 
 
+def determine_elbow_point(wcss):
+    # Calculate the first derivative
+    first_derivative = np.diff(wcss)
+
+    # Calculate the second derivative
+    second_derivative = np.diff(first_derivative)
+
+    # Find the index of the maximum value in the second derivative
+    elbow_index = np.argmin(second_derivative) + 1  # +1 to account for the shift due to np.diff
+
+    return elbow_index
+def get_optimal_nclusters(selected_features):
+        wcss = []
+        for i in range(1, 11):
+            kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=50, random_state=0)
+            kmeans.fit(selected_features)
+            wcss.append(kmeans.inertia_)
+        print(wcss)
+        # From visual analysis we can tell the elbow point is 5, as that is where the inertia starts decreasing linearly
+        # Get rate of change for values in WCSS list:
+        wcss_derivative = np.diff(wcss)
+        # Get rate of change for the wcss_derivative value, if positive then the rate of change is decreasing.
+        # If negative the RoC is still decreasing, but at a slower rate. This lets us find the elbow point
+        wcss_derivative_2 = np.diff(wcss_derivative)
+        # Get minimum value of the second derivative to find the optimal elbow point
+        elbow_point = np.argmin(wcss_derivative_2) + 1
+        print("Optimal number of clusters (elbow point):", elbow_point)
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(1, 11), wcss)
+        plt.title('Elbow Method')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('WCSS')
+        plt.xticks(range(1, 11))
+        plt.show()
+
 def k_cluster(selected_features, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
     clusters = kmeans.fit_predict(selected_features)
@@ -134,6 +169,8 @@ def main():
     visual_eda(df)
 
     selected_features = df[["Annual Income (k$)", "Spending Score (1-100)"]]
+    print(get_optimal_nclusters(selected_features))
+    exit()
     kmeans_nclusters = 5
 
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=kmeans_nclusters)
@@ -146,9 +183,6 @@ def main():
     labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, min_pts)
     df['DBSCAN_Cluster'] = dbscan_clustering(selected_features, best_min_samples, optimal_eps)
     visualize_clusters(df, 'Annual Income (k$)',  'Spending Score (1-100)','DBSCAN_Cluster')
-
-
-
 
 if __name__ == '__main__':
     main()
