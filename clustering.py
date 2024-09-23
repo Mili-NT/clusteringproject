@@ -57,7 +57,7 @@ def get_optimal_nclusters_elbow(selected_features):
         :return: integer value representing the elbow point
         """
         wcss = []
-        for i in range(1, 12):
+        for i in range(1, 11):
             kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
             kmeans.fit(selected_features)
             wcss.append(kmeans.inertia_)
@@ -70,11 +70,11 @@ def get_optimal_nclusters_elbow(selected_features):
         elbow_point = np.argmin(wcss_derivative_2) + 1
         # Plot to confirm
         plt.figure(figsize=(10, 6))
-        plt.plot(range(1, 12), wcss)
+        plt.plot(range(1, 11), wcss)
         plt.title('Elbow Method')
         plt.xlabel('Number of Clusters')
         plt.ylabel('WCSS')
-        plt.xticks(range(1, 12))
+        plt.xticks(range(1, 11))
         plt.show()
         return elbow_point
 
@@ -91,11 +91,11 @@ def get_optimal_nclusters_silhouette(selected_features):
         score = silhouette_score(selected_features, labels)
         scores.append(score)
     plt.figure(figsize=(10, 6))
-    plt.plot(range(2, 12), scores)
+    plt.plot(range(2, 11), scores)
     plt.title('Silhouette Scores by Ncluster')
     plt.xlabel('Ncluster')
     plt.ylabel('Silhouette Score')
-    plt.xticks(range(2, 12))
+    plt.xticks(range(2, 11))
     plt.grid()
     plt.show()
     return range(2, 12)[np.argmax(scores)]
