@@ -92,6 +92,7 @@ def fuzzy_cmeans(selected_features, n_clusters):
     return clusters
 
 #Applying DBSCAN Optimizing
+
 def dbscan_opt(selected_features, min_pts, k=10):
     """
     Plots the k-distance graph to help estimate the optimal eps for DBSCAN.
@@ -99,12 +100,13 @@ def dbscan_opt(selected_features, min_pts, k=10):
     - data: The scaled dataset for clustering
     - minPts: The number of nearest neighbors to consider (default = 4)
     """
-
+    # Compute k-nearest neighbors distances
     neighbors = NearestNeighbors(n_neighbors=k)
     neighbors_fit = neighbors.fit(selected_features)
     distances, _ = neighbors_fit.kneighbors(selected_features)
     k_distances = np.sort(distances[:, k - 1], axis=0)
 
+    # Plot the k-distance graph
     plt.figure(figsize=(8, 5))
     plt.plot(k_distances)
     plt.xlabel('Data Points (sorted by distance)')
@@ -113,30 +115,38 @@ def dbscan_opt(selected_features, min_pts, k=10):
     plt.grid(True)
     plt.show()
 
-    # Choosing an epsilon based on the elbow point from the graph (adjustable)
-    optimal_eps = np.percentile(k_distances, 90)
 
-    # Step 2: Optimize min_samples using silhouette score for the optimized eps
+    # Try different percentiles for `eps`
+    best_eps = None
     best_score = -1
     best_min_samples = None
     best_labels = None
 
-    for min_samples in min_pts:
-        dbscan = DBSCAN(eps=optimal_eps, min_samples=min_samples)
-        labels = dbscan.fit_predict(selected_features)
+    for percentile in [55, 60, 80, 85, 90]:
+        eps = np.percentile(k_distances, percentile)
+        print(f"Testing with eps = {eps} (percentile: {percentile})")
 
-        # Only calculate silhouette score if more than 1 cluster is found
-        if len(set(labels)) > 1:
-            score = silhouette_score(selected_features, labels)
-            if score > best_score:
-                best_score = score
-                best_min_samples = min_samples
-                best_labels = labels
 
-    return best_labels, optimal_eps, best_min_samples, best_score
+        # Optimize `min_samples` using silhouette score for each `eps`
+        for min_samples in min_pts:
+            dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+            labels = dbscan.fit_predict(selected_features)
 
-    #Applying DBSCAN
+            # Only calculate silhouette score if more than 1 cluster is found
+            if len(set(labels)) > 1:
+                score = silhouette_score(selected_features, labels)
+                if score > best_score:
+                    best_score = score
+                    best_min_samples = min_samples
+                    best_eps = eps
+                    best_labels = labels
+
+    print(f"Best eps: {best_eps}, Best min_samples: {best_min_samples}, Best silhouette score: {best_score}")
+    return best_labels, best_eps, best_min_samples, best_score
+
+#Applying DBSCAN
 def dbscan_clustering(features, min_pts, ep):
+    print('EPS:', {ep})
     dbscan_model = DBSCAN(eps=ep, min_samples=min_pts)
     final_labels = dbscan_model.fit_predict(features)
     return final_labels
