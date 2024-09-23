@@ -1,17 +1,14 @@
 import pandas as pd
 import seaborn as sns
+from fcmeans import FCM
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans, DBSCAN
-from fcmeans import FCM
-import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import silhouette_score
-
 from kneed import KneeLocator
 
-
-# TODO: Determine ncluster via some automated method (ncluster=5 is optimal, proved via testing)
 # TODO: Improve DBSCAN accuracy
 
 def boxplot_associate(df, indexes, graph_info_array):
@@ -34,6 +31,8 @@ def boxplot_associate(df, indexes, graph_info_array):
 
 def import_data():
     df = pd.read_csv('Mall_Customers.csv')
+    # One-Hot Encoding
+    df = pd.get_dummies(df, columns=["Genre"])
     # MinMax Scale 0-1
     df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]] = MinMaxScaler().fit_transform(df[["Age", "Annual Income (k$)", "Spending Score (1-100)"]])
     return df
@@ -57,8 +56,47 @@ def visual_eda(df):
     # Annual Income-Spending Score Association (Boxplot)
     boxplot_associate(df, (3,4), ["Annual Income", "Spending Score", "Annual Income-Spending Score Association"])
 
+def get_optimal_nclusters_elbow(selected_features):
+        wcss = []
+        for i in range(1, 12):
+            kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
+            kmeans.fit(selected_features)
+            wcss.append(kmeans.inertia_)
+        # From visual analysis we can tell the elbow point is 5, as that is where the inertia starts decreasing linearly
+        # Get rate of change for values in WCSS list:
+        wcss_derivative = np.diff(wcss)
+        # Get rate of change for the wcss_derivative value, if positive then the rate of change is decreasing.
+        # If negative the RoC is still decreasing, but at a slower rate. This lets us find the elbow point
+        wcss_derivative_2 = np.diff(wcss_derivative)
+        # Get minimum value of the second derivative to find the optimal elbow point
+        elbow_point = np.argmin(wcss_derivative_2) + 1
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(1, 12), wcss)
+        plt.title('Elbow Method')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('WCSS')
+        plt.xticks(range(1, 12))
+        plt.show()
+        return elbow_point
 
-def k_cluster(selected_features, n_clusters=5):
+def get_optimal_nclusters_silhouette(selected_features):
+    scores = []
+    for i in range(2, 12):
+        kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
+        labels = kmeans.fit_predict(selected_features)
+        score = silhouette_score(selected_features, labels)
+        scores.append(score)
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(2, 12), scores)
+    plt.title('Silhouette Scores by Ncluster')
+    plt.xlabel('Ncluster')
+    plt.ylabel('Silhouette Score')
+    plt.xticks(range(2, 12))
+    plt.grid()
+    plt.show()
+    return range(2, 12)[np.argmax(scores)]
+
+def k_cluster(selected_features, n_clusters):
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
     clusters = kmeans.fit_predict(selected_features)
     return clusters
@@ -80,13 +118,13 @@ def dbscan_opt(selected_features, min_pts, k=10):
     """
 
 
-    # Step 1: Compute k-nearest neighbors distances
+    # Compute k-nearest neighbors distances
     neighbors = NearestNeighbors(n_neighbors=k)
     neighbors_fit = neighbors.fit(selected_features)
     distances, _ = neighbors_fit.kneighbors(selected_features)
     k_distances = np.sort(distances[:, k - 1], axis=0)
 
-    # Step 2: Plot the k-distance graph
+    # Plot the k-distance graph
     plt.figure(figsize=(8, 5))
     plt.plot(k_distances)
     plt.xlabel('Data Points (sorted by distance)')
@@ -95,18 +133,19 @@ def dbscan_opt(selected_features, min_pts, k=10):
     plt.grid(True)
     plt.show()
 
-    # Step 3: Try different percentiles for `eps`
+
+    # Try different percentiles for `eps`
     best_eps = None
     best_score = -1
-    best_min_samples = None  # Initialize here to track across all percentiles
-    best_labels = None  # Initialize here to track across all percentiles
+    best_min_samples = None 
+    best_labels = None  
 
-    for percentile in [30, 35, 40, 43, 45, 47, 50, 55, 60, 80, 85, 90]:
+    for percentile in [55, 60, 80, 85, 90]:
         eps = np.percentile(k_distances, percentile)
         print(f"Testing with eps = {eps} (percentile: {percentile})")
 
 
-        # Step 4: Optimize `min_samples` using silhouette score for each `eps`
+        # Optimize `min_samples` using silhouette score for each `eps`
         for min_samples in min_pts:
             dbscan = DBSCAN(eps=eps, min_samples=min_samples)
             labels = dbscan.fit_predict(selected_features)
@@ -117,13 +156,13 @@ def dbscan_opt(selected_features, min_pts, k=10):
                 if score > best_score:
                     best_score = score
                     best_min_samples = min_samples
-                    optimal_eps = eps
+                    best_eps = eps
                     best_labels = labels
 
-    print(f"Best eps: {optimal_eps}, Best min_samples: {best_min_samples}, Best silhouette score: {best_score}")
-    return best_labels, optimal_eps, best_min_samples, best_score
+    print(f"Best eps: {best_eps}, Best min_samples: {best_min_samples}, Best silhouette score: {best_score}")
+    return best_labels, best_eps, best_min_samples, best_score
 
-    #Applying DBSCAN
+#Applying DBSCAN
 def dbscan_clustering(features, min_pts, ep):
     print('EPS:', {ep})
     dbscan_model = DBSCAN(eps=ep, min_samples=min_pts)
@@ -140,25 +179,26 @@ def visualize_clusters(df, feature_x, feature_y, cluster_label):
 
 def main():
     df = import_data()
-    # explore_data(df)
-    # visual_eda(df)
+    explore_data(df)
+    visual_eda(df)
 
     selected_features = df[["Annual Income (k$)", "Spending Score (1-100)"]]
-    kmeans_nclusters = 5
+    nclusters_silhouette = get_optimal_nclusters_silhouette(selected_features)
+    nclusters_elbow = get_optimal_nclusters_elbow(selected_features)
+    print(f"nclusters according to silhouette method: {nclusters_silhouette}\nnclusters according to elbow method: {nclusters_elbow}")
+    # Because the two agree we can conclusively say that the optimal ncluster value is likely to be 5
+    kmeans_nclusters = nclusters_elbow
 
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=kmeans_nclusters)
-    # visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
+    visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
 
     df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=kmeans_nclusters)
-    # visualize_clusters(df, 'Annual Income (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
+    visualize_clusters(df, 'Annual Income (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
 
     min_pts = range(3, 15)
     labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, min_pts)
     df['DBSCAN_Cluster'] = dbscan_clustering(selected_features, best_min_samples, optimal_eps)
     visualize_clusters(df, 'Annual Income (k$)',  'Spending Score (1-100)','DBSCAN_Cluster')
-
-
-
 
 if __name__ == '__main__':
     main()
