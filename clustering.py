@@ -11,24 +11,6 @@ from sklearn.metrics import silhouette_score
 
 # TODO: Improve DBSCAN accuracy
 
-def boxplot_associate(df, indexes, graph_info_array):
-    """
-    :param df: The pandas dataframe containing the data to graph
-    :param indexes: a tuple containing the x and y indexes to associate
-    :param graph_info_array: an array containing graph information -> [xlabel, ylabel, title]
-
-    Example:
-        To create a boxplot associating gender and spending score:
-            boxplot_associate(df, (1, 4), ["Gender", "Spending Score", "Gender-Spending Score Association])
-    """
-    plt.figure(figsize=(10, 6))
-    sns.boxplot(x=df.iloc[:, indexes[0]], y=df.iloc[:, indexes[1]], data=df)
-    plt.xlabel(graph_info_array[0])
-    plt.ylabel(graph_info_array[1])
-    plt.title(graph_info_array[2])
-    plt.grid(True)
-    plt.show()
-
 def import_data():
     df = pd.read_csv('Mall_Customers.csv')
     # One-Hot Encoding
@@ -48,13 +30,15 @@ def visual_eda(df):
     # Value distribution (histogram)
     df.hist(bins=30, figsize=(15, 10))
     plt.show()
+    sns.displot(df.iloc[:, 2], kde=True)
     sns.displot(df.iloc[:, 3], kde=True)
-    sns.displot(df.iloc[:, 4], kde=True)
     # Seaborn scatterplots
     sns.pairplot(df)
     plt.show()
-    # Annual Income-Spending Score Association (Boxplot)
-    boxplot_associate(df, (3,4), ["Annual Income", "Spending Score", "Annual Income-Spending Score Association"])
+    explore_data(df)
+    # Annual Income-Spending Score Association (jointplot)
+    sns.jointplot(x="Annual Income (k$)", y="Spending Score (1-100)", data=df, kind="scatter")
+    plt.show()
 
 def get_optimal_nclusters_elbow(selected_features):
         wcss = []
@@ -78,6 +62,7 @@ def get_optimal_nclusters_elbow(selected_features):
         plt.xticks(range(1, 12))
         plt.show()
         return elbow_point
+
 
 def get_optimal_nclusters_silhouette(selected_features):
     scores = []
