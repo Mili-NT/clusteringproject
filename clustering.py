@@ -8,7 +8,6 @@ from sklearn.cluster import KMeans, DBSCAN
 from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import silhouette_score
 
-
 def import_data():
     """
     Imports data from Mall_Customers.csv and performs encoding and scaling.
@@ -85,7 +84,7 @@ def get_optimal_nclusters_silhouette(selected_features):
     :return: an integer representing the silhouette score taken from the scores list
     """
     scores = []
-    for i in range(2, 12):
+    for i in range(2, 11):
         kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
         labels = kmeans.fit_predict(selected_features)
         score = silhouette_score(selected_features, labels)
@@ -98,7 +97,7 @@ def get_optimal_nclusters_silhouette(selected_features):
     plt.xticks(range(2, 11))
     plt.grid()
     plt.show()
-    return range(2, 12)[np.argmax(scores)]
+    return range(2, 11)[np.argmax(scores)]
 
 def k_cluster(selected_features, n_clusters):
     """
