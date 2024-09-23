@@ -30,14 +30,12 @@ def visual_eda(df):
     # Value distribution (histogram)
     df.hist(bins=30, figsize=(15, 10))
     plt.show()
-    sns.displot(df.iloc[:, 2], kde=True)
-    sns.displot(df.iloc[:, 3], kde=True)
     # Seaborn scatterplots
     sns.pairplot(df)
     plt.show()
     explore_data(df)
     # Annual Income-Spending Score Association (jointplot)
-    sns.jointplot(x="Annual Income (k$)", y="Spending Score (1-100)", data=df, kind="scatter")
+    sns.jointplot(x='Annual Income (k$)', y='Spending Score (1-100)', data=df, kind='kde', fill=True, cmap='coolwarm')
     plt.show()
 
 def get_optimal_nclusters_elbow(selected_features):
