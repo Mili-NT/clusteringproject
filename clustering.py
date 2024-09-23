@@ -64,11 +64,11 @@ def get_optimal_nclusters_elbow(selected_features):
         # From visual analysis we can tell the elbow point is 5, as that is where the inertia starts decreasing linearly
         # Get rate of change for values in WCSS list:
         wcss_derivative = np.diff(wcss)
-        # Get rate of change for the wcss_derivative value, if positive then the rate of change is decreasing.
-        # If negative the RoC is still decreasing, but at a slower rate. This lets us find the elbow point
+        # Get rate of change for the wcss_derivative value. This lets us find the elbow point.
         wcss_derivative_2 = np.diff(wcss_derivative)
-        # Get minimum value of the second derivative to find the optimal elbow point
+        # Get minimum value of the second derivative to find the optimal elbow point (offset by 1)
         elbow_point = np.argmin(wcss_derivative_2) + 1
+        # Plot to confirm
         plt.figure(figsize=(10, 6))
         plt.plot(range(1, 12), wcss)
         plt.title('Elbow Method')
@@ -215,13 +215,13 @@ def main():
     print(f"nclusters according to silhouette method: {nclusters_silhouette}\nnclusters according to elbow method: {nclusters_elbow}")
     # Because the two agree we can conclusively say that the optimal ncluster value is likely to be 5
     kmeans_nclusters = nclusters_elbow
-
+    # K-Means
     df['Kmeans_Cluster'] = k_cluster(selected_features, n_clusters=kmeans_nclusters)
     visualize_clusters(df,'Annual Income (k$)','Spending Score (1-100)', 'Kmeans_Cluster')
-
+    # Fuzzy C-Means
     df['FCM_Cluster'] = fuzzy_cmeans(selected_features, n_clusters=kmeans_nclusters)
     visualize_clusters(df, 'Annual Income (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
-
+    # DBSCAN
     min_pts = range(3, 15)
     labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, min_pts)
     df['DBSCAN_Cluster'] = dbscan_clustering(selected_features, best_min_samples, optimal_eps)
