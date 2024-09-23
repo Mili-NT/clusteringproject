@@ -128,7 +128,7 @@ def fuzzy_cmeans(selected_features, n_clusters):
 
 #Applying DBSCAN Optimizing
 
-def dbscan_opt(selected_features, min_pts, k=10):
+def dbscan_opt(selected_features, min_pts, k):
     """
     Plots the k-distance graph to help estimate the optimal eps value for DBSCAN.
 
@@ -223,7 +223,8 @@ def main():
     visualize_clusters(df, 'Annual Income (k$)' ,'Spending Score (1-100)','FCM_Cluster' )
     # DBSCAN
     min_pts = range(3, 15)
-    labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, min_pts)
+    k = 10
+    labels, optimal_eps, best_min_samples, best_score = dbscan_opt(selected_features, min_pts, k)
     df['DBSCAN_Cluster'] = dbscan_clustering(selected_features, best_min_samples, optimal_eps)
     visualize_clusters(df, 'Annual Income (k$)',  'Spending Score (1-100)','DBSCAN_Cluster')
 
