@@ -9,9 +9,12 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.metrics import silhouette_score
 
 
-# TODO: Improve DBSCAN accuracy
-
 def import_data():
+    """
+    Imports data from Mall_Customers.csv and performs encoding and scaling.
+
+    :return: df -> scaled and encoded dataframe
+    """
     df = pd.read_csv('Mall_Customers.csv')
     # One-Hot Encoding
     df = pd.get_dummies(df, columns=["Genre"])
@@ -20,6 +23,11 @@ def import_data():
     return df
 
 def explore_data(df):
+    """
+    Performs basic data description and checks for missing values
+
+    :param df: pandas dataframe containing mall customer data
+    """
     # Information about the dataset including the mean values and standard deviations for each column (check here for normalization info)
     print(f"{df.describe()}\n")
     # 200 entries, 200 non-null counts for each column means there are no missing values that need to be accounted for
@@ -27,6 +35,11 @@ def explore_data(df):
     print(f"Missing values:\n{df.isnull().sum()}\n")
 
 def visual_eda(df):
+    """
+    Performs visual EDA and generates graphs
+
+    :param df: pandas dataframe containing mall customer data
+    """
     # Value distribution (histogram)
     df.hist(bins=30, figsize=(15, 10))
     plt.show()
@@ -39,6 +52,10 @@ def visual_eda(df):
     plt.show()
 
 def get_optimal_nclusters_elbow(selected_features):
+        """
+        :param selected_features: dataframe containing the selected features to cluster
+        :return: integer value representing the elbow point
+        """
         wcss = []
         for i in range(1, 12):
             kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
@@ -63,6 +80,10 @@ def get_optimal_nclusters_elbow(selected_features):
 
 
 def get_optimal_nclusters_silhouette(selected_features):
+    """
+    :param selected_features: dataframe containing the selected features to cluster
+    :return: an integer representing the silhouette score taken from the scores list
+    """
     scores = []
     for i in range(2, 12):
         kmeans = KMeans(n_clusters=i, init='k-means++', n_init=50)
@@ -80,12 +101,26 @@ def get_optimal_nclusters_silhouette(selected_features):
     return range(2, 12)[np.argmax(scores)]
 
 def k_cluster(selected_features, n_clusters):
+    """
+    Uses k-means to label clusters
+
+    :param selected_features: dataframe containing the features to cluster
+    :param n_clusters: optimal number of clusters determined by elbow and silhouette methods
+    :return: cluster labels
+    """
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
     clusters = kmeans.fit_predict(selected_features)
     return clusters
 
 #Applying fuzzy-k
 def fuzzy_cmeans(selected_features, n_clusters):
+    """
+    Uses fuzzy c-means to label clusters
+
+    :param selected_features: dataframe containing the features to cluster
+    :param n_clusters: optimal number of clusters determined by elbow and silhouette methods
+    :return: cluster labels
+    """
     fcm = FCM(n_clusters=n_clusters)
     fcm.fit(selected_features.values)
     clusters = fcm.predict(selected_features.values)
@@ -95,10 +130,12 @@ def fuzzy_cmeans(selected_features, n_clusters):
 
 def dbscan_opt(selected_features, min_pts, k=10):
     """
-    Plots the k-distance graph to help estimate the optimal eps for DBSCAN.
-    Parameters:
-    - data: The scaled dataset for clustering
-    - minPts: The number of nearest neighbors to consider (default = 4)
+    Plots the k-distance graph to help estimate the optimal eps value for DBSCAN.
+
+    :param selected_features: The dataset containing the selected features for clustering
+    :param min_pts: minimum number of points required to form a cluster
+    :param k: nearest neighbor value
+    :return: best_labels, best_eps, best_min_samples, best_score
     """
     # Compute k-nearest neighbors distances
     neighbors = NearestNeighbors(n_neighbors=k)
@@ -145,10 +182,18 @@ def dbscan_opt(selected_features, min_pts, k=10):
     return best_labels, best_eps, best_min_samples, best_score
 
 #Applying DBSCAN
-def dbscan_clustering(features, min_pts, ep):
-    print('EPS:', {ep})
-    dbscan_model = DBSCAN(eps=ep, min_samples=min_pts)
-    final_labels = dbscan_model.fit_predict(features)
+def dbscan_clustering(selected_features, min_pts, eps):
+    """
+    Runs the DBSCAN algorithm to cluster the features according to the optimal number of clusters.
+
+    :param selected_features: the dataframe containing the selected features for clustering.
+    :param min_pts: the optimized minimum points to form a cluster
+    :param eps: the optimized epsilon value
+    :return: dbscan cluster labels
+    """
+    print('EPS:', {eps})
+    dbscan_model = DBSCAN(eps=eps, min_samples=min_pts)
+    final_labels = dbscan_model.fit_predict(selected_features)
     return final_labels
 
 def visualize_clusters(df, feature_x, feature_y, cluster_label):
